@@ -1,3 +1,5 @@
+import asyncio
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, CommandHandler
 from telegram.ext import filters
@@ -25,6 +27,15 @@ class TelegramBot(object):
             return "DONE"
         return on_message
 
+    async def _send_typing(self, chat_id, stop_event):
+        """Keep sending typing indicators until stop_event is set."""
+        while not stop_event.is_set():
+            try:
+                await self.application.bot.send_chat_action(chat_id=chat_id, action='typing')
+            except Exception:
+                pass
+            await asyncio.sleep(4)
+
     async def message(self, update, context):
         if self.restricted_chat_ids and update and update.message and str(update.message.chat_id) not in self.restricted_chat_ids:
             return
@@ -34,8 +45,19 @@ class TelegramBot(object):
                 on_message=self.generate_on_message(update.message.chat_id),
                 user_id=update.message.chat_id)
             self.clients[update.message.chat_id] = clt
-        await self.application.bot.send_chat_action(chat_id=update.message.chat_id, action='typing')
-        await update.message.reply_text(clt.run(update.message.text))
+        chat_id = update.message.chat_id
+        stop_event = asyncio.Event()
+        typing_task = asyncio.create_task(self._send_typing(chat_id, stop_event))
+        try:
+            response = await asyncio.to_thread(clt.run, update.message.text)
+            await update.message.reply_text(response)
+        finally:
+            stop_event.set()
+            typing_task.cancel()
+            try:
+                await typing_task
+            except asyncio.CancelledError:
+                pass
         
 
 async def get_chat_id(update, context):

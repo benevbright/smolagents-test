@@ -18,10 +18,16 @@ def generate_client(on_message, user_id):
     system_md_path = project_root / "SYSTEM.md"
     system_prompt = system_md_path.read_text().strip() if system_md_path.exists() else ""
 
+    model_id = os.getenv("MODEL_ID")
+    llm_api_base = os.getenv("LLM_API_BASE")
+    llm_api_key = os.getenv("LLM_API_KEY")
+    if not model_id:
+        raise ValueError("MODEL_ID is not set")
+
     model = OpenAIServerModel(
-        model_id="custom/localllm",
-        api_base="http://localhost:8090/v1",
-        api_key="dummy",
+        model_id=model_id,
+        api_base=llm_api_base,
+        api_key=llm_api_key,
     )
 
     brave_api_key = os.getenv("BRAVE_API_KEY")
