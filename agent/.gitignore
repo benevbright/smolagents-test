@@ -67,7 +67,6 @@ venv.bak/
 *~
 
 # Poetry
-poetry.lock
 
 # MyPy
 .mypy_cache/
