@@ -1,3 +1,5 @@
+import os
+
 from smolagents import tool
 import subprocess
 
@@ -11,12 +13,15 @@ def bash_tool(command: str, timeout: int = 10) -> str:
         timeout: The maximum execution time in seconds.
     """
     try:
+        current_env = os.environ.copy()
+        print("-----------------", current_env)
         result = subprocess.run(
             command,
             shell=True,
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
+            env=current_env
         )
         if result.returncode == 0:
             return result.stdout if result.stdout else "Command executed successfully with no output."
