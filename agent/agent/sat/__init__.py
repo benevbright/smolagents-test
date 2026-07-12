@@ -34,6 +34,7 @@ class TelegramBot(object):
                 on_message=self.generate_on_message(update.message.chat_id),
                 user_id=update.message.chat_id)
             self.clients[update.message.chat_id] = clt
+        await self.application.bot.send_chat_action(chat_id=update.message.chat_id, action='typing')
         await update.message.reply_text(clt.run(update.message.text))
         
 
