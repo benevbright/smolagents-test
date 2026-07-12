@@ -1,34 +1,12 @@
 import os
 import sys
-from smolagents import CodeAgent, ApiWebSearchTool, OpenAIServerModel, tool
+from pathlib import Path
+
+from agent.tools import bash_tool
+from smolagents import CodeAgent, ApiWebSearchTool, OpenAIServerModel
 from dotenv import load_dotenv
-import subprocess
 
 load_dotenv()
-
-@tool
-def execute_bash(command: str, timeout: int = 10) -> str:
-    """
-    Executes a bash command on the local machine and returns its output.
-
-    Args:
-        command: The full command string to run in the terminal (e.g., 'ls -la', 'pwd').
-        timeout: The maximum execution time in seconds.
-    """
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=timeout
-        )
-        if result.returncode == 0:
-            return result.stdout if result.stdout else "Command executed successfully with no output."
-        else:
-            return f"Error (Exit Code {result.returncode}): {result.stderr}"
-    except Exception as e:
-        return f"Execution failed: {str(e)}"
     
 def main():
     if len(sys.argv) < 2:
@@ -36,6 +14,10 @@ def main():
         return
     
     user_query = sys.argv[1]
+
+    project_root = Path(__file__).resolve().parents[2]
+    system_md_path = project_root / "SYSTEM.md"
+    system_prompt = system_md_path.read_text().strip() if system_md_path.exists() else ""
 
     model = OpenAIServerModel(
         model_id="custom/localllm",
@@ -49,10 +31,11 @@ def main():
     brave_tool = ApiWebSearchTool(api_key=brave_api_key)
 
     agent = CodeAgent(
-        tools=[execute_bash, brave_tool],
+        tools=[bash_tool, brave_tool],
         model=model,
         stream_outputs=True,
-        additional_authorized_imports=["*"]
+        additional_authorized_imports=["*"],
+        instructions=system_prompt
     )
 
     agent.run(user_query)
